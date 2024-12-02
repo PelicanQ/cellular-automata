@@ -229,43 +229,66 @@ def update_nowrap(frame, img, grid, N, activity, act_img):
     grid[:] = newGrid[:]
 
 
-# main() function
+def animate(N=300, *, update_interval=5, clusters=False):
+    """Animate the cellular automata evolution.
+
+    Parameters:
+        - N: grid size i.e. grid is NxN
+        - update_interval: animation update interval in milliseconds
+        - clusters: bool to enable animated cluster statistics in a
+        separate plot
+    """
+    grid = start(N)
+
+    # use the fact that False -> 0 and True -> 1 when adding
+    num_plots = 1 + clusters
+
+    # set up animation
+    fig, axs = plt.subplots(ncols=num_plots)  # figure for CA grid
+
+    # make the axs handle act the same for one and multiple axes
+    if num_plots == 1:
+        axs = (axs,)
+
+    img = axs[0].imshow(grid, interpolation="nearest")
+    # global scatter
+    # scatter = axs[1]
+    # t1 = time.perf_counter()
+    # for i in range(100):
+    #     update(i, grid, N, parallel=False)
+    # t2 = time.perf_counter()
+    # print(t2 - t1)
+
+    # act_img = axs[2].imshow()
+    # act_img.set_data(activity)
+    img.set_data(grid)
+
+    if clusters:
+        a = cluster.find_clusters(grid)
+        u = np.unique(a, return_counts=True)
+        axs[1].loglog(u[0], u[1])
+
+    def anim_func(frame):
+        update(frame, grid, img=img)
+
+        if clusters:
+            axs[1].clear()
+            a = cluster.find_clusters(grid)
+            u = np.unique(a, return_counts=True)
+            axs[1].loglog(u[0], u[1])
+
+    anim = animation.FuncAnimation(
+        fig,
+        # lambda frame: update(frame, grid, parallel=False, img=img),
+        lambda frame: anim_func(frame),
+        interval=update_interval,
+    )
+    plt.show()
 
 
 def main():
-
-    N = 300  # grid size
-
-    updateInterval = 5  # milliseconds animation update
-
-    # grid = randomGrid(N, 0.2)
-    grid = start(N)
-
-    # set up animation
-    fig, axs = plt.subplots(ncols=2)  # figure for CA grid
-
-    img = axs[0].imshow(grid, interpolation="nearest")
-    global scatter
-    scatter = axs[1]
-    t1 = time.perf_counter()
-    for i in range(100):
-        update(i, grid, N, parallel=False)
-    t2 = time.perf_counter()
-    print(t2 - t1)
-    # prev = frac
-    # act_img.set_data(activity)
-    # img.set_data(grid)
-    # a = cluster.find_clusters(grid)
-    # u = np.unique(a, return_counts=True)
-    # axs[1].loglog(u[0], u[1])
-    # anim = animation.FuncAnimation(
-    #     fig,
-    #     lambda frame: update(frame, grid, parallel=False, img=img),
-    #     interval=updateInterval,
-    # )
-    # plt.show()
+    animate(clusters=True)
 
 
-# call main
 if __name__ == "__main__":
     main()

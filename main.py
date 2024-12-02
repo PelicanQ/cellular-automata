@@ -25,7 +25,7 @@ def randomGrid(N, p):
 
 
 def start(N: int):
-    """returns a grid of NxN random values"""
+    """returns a grid of NxN values"""
     if N % 2 == 1:
         raise Exception("N must be even")
     a = np.zeros((N, N), dtype=np.int16)
@@ -50,18 +50,7 @@ fractionsY = np.zeros((rounds, 1))
 scatter: matplotlib.axes.Axes
 
 
-def _update_grid_pos(grid, i: int, j: int, num_neighbors: int) -> None:
-    print("HEJ", type(i))
-    i = int(i)
-    j = int(j)
-    grid[i, j] = chosen_rule(grid, i, j, num_neighbors)
-
-
-birth_map = [OFF, OFF, OFF, ON, OFF, OFF, ON, OFF, OFF]  # if dead
-death_map = [OFF, OFF, ON, ON, OFF, ON, ON, OFF, OFF]  # if alive
-
-
-def update(frame: int, grid, img=None, parallel=False):
+def update(frame: int, grid, img=None):
     kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int16)
     conv = convolve(grid, kernel, mode="wrap")
     num_neighbors = np.floor_divide(conv, 255)
@@ -75,29 +64,15 @@ def update(frame: int, grid, img=None, parallel=False):
     # fractionsX[frame] = np.sum(grid) / (N * M * ON)  # set prev fraction
 
     # update grid according to global chosen_rule
-    # if parallel:
-    #     shared_array = mp.Array("d", N * M)
-    #     for i in range(N):
-    #         for j in range(M):
-    #             proc = mp.Process(
-    #                 target=_update_grid_pos,
-    #                 args=(shared_array, i, j, int(num_neighbors[i, j])),
-    #             )
-    #             proc.start()
-    #     grid = np.frombuffer(shared_array.get_obj()).reshape((N, M))
-
-    # else:
-
     for i in range(N):
         for j in range(M):
             if grid[i, j] == OFF:
-                grid[i, j] = birth_map[num_neighbors[i, j]]
+                grid[i, j] = chosen_rule.birth_map[num_neighbors[i, j]]
             else:
-                grid[i, j] = death_map[num_neighbors[i, j]]
-            # grid[i, j] = chosen_rule(grid, i, j, int(num_neighbors[i, j]))
+                grid[i, j] = chosen_rule.death_map[num_neighbors[i, j]]
 
-    # if img:
-    # img.set_data(grid)
+    if img:
+        img.set_data(grid)
 
     # fractionsY[frame] = np.sum(grid) / (N * M * ON)  # set updated fraction
     # scatter.scatter(fractionsX[frame], fractionsY[frame])

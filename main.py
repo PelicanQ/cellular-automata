@@ -19,8 +19,13 @@ import time
 vals = [ON, OFF]
 
 
-def randomGrid(N, p):
-    """returns a grid of NxN random values"""
+def random_grid(N, p):
+    """returns a grid of NxN random values
+
+    Parameters:
+        - N: grid size i.e. grid is NxN
+        - p: probability for each cell to initially be ON
+    """
     return np.random.choice(vals, N * N, p=[p, 1 - p]).reshape(N, N)
 
 

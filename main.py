@@ -234,16 +234,15 @@ def update_nowrap(frame, img, grid, N, activity, act_img):
     grid[:] = newGrid[:]
 
 
-def animate(N=300, *, update_interval=5, clusters=False):
+def animate(grid, *, update_interval=5, clusters=False):
     """Animate the cellular automata evolution.
 
     Parameters:
-        - N: grid size i.e. grid is NxN
+        - grid: initial grid
         - update_interval: animation update interval in milliseconds
         - clusters: bool to enable animated cluster statistics in a
         separate plot
     """
-    grid = start(N)
 
     # use the fact that False -> 0 and True -> 1 when adding
     num_plots = 1 + clusters
@@ -296,7 +295,11 @@ def animate(N=300, *, update_interval=5, clusters=False):
 
 
 def main():
-    animate(clusters=True)
+    N = 300
+    grid = random_grid(N, 0.3)
+    global chosen_rule
+    chosen_rule = rules.conway
+    animate(grid, clusters=True)
 
 
 if __name__ == "__main__":

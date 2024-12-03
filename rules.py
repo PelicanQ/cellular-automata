@@ -37,3 +37,9 @@ fig6 = Rule(
     birth_map=[OFF, OFF, OFF, ON, OFF, OFF, ON, OFF, OFF],
     death_map=[OFF, OFF, ON, ON, OFF, ON, ON, OFF, OFF]
 )
+
+
+fig8 = Rule(
+    birth_map=[OFF, OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF],
+    death_map=[OFF, OFF, ON, ON, ON, ON, ON, OFF, OFF]
+)

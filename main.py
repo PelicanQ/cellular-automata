@@ -263,6 +263,8 @@ def animate(N=300, *, update_interval=5, clusters=False):
     # act_img.set_data(activity)
     img.set_data(grid)
 
+    generation_text = axs[0].text(150, -40, '', fontsize=15, ha='center', va='center', color='black')
+
     if clusters:
         a = cluster.find_clusters(grid)
         u = np.unique(a, return_counts=True)
@@ -270,6 +272,8 @@ def animate(N=300, *, update_interval=5, clusters=False):
 
     def anim_func(frame):
         update(frame, grid, img=img)
+
+        generation_text.set_text(f"Generation: {frame}")
 
         if clusters:
             axs[1].clear()

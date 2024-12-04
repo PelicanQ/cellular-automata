@@ -269,10 +269,14 @@ def animate(grid, *, update_interval=5, clusters=False):
 
     generation_text = axs[0].text(150, -40, '', fontsize=15, ha='center', va='center', color='black')
 
+    def plot_clusters():
+        size, freq = cluster.get_cluster_dist(grid)
+        axs[1].loglog(size, freq)
+        axs[1].set_xlabel("cluster size")
+        axs[1].set_ylabel("frequency")
+
     if clusters:
-        a = cluster.find_clusters(grid)
-        u = np.unique(a, return_counts=True)
-        axs[1].loglog(u[0], u[1])
+        plot_clusters()
 
     def anim_func(frame):
         update(frame, grid, img=img)
@@ -281,11 +285,7 @@ def animate(grid, *, update_interval=5, clusters=False):
 
         if clusters:
             axs[1].clear()
-            a = cluster.find_clusters(grid)
-            u = np.unique(a, return_counts=True)
-            axs[1].loglog(u[0], u[1])
-            axs[1].set_xlabel("cluster size")
-            axs[1].set_ylabel("frequency")
+            plot_clusters()
 
     anim = animation.FuncAnimation(
         fig,

@@ -284,6 +284,8 @@ def animate(grid, *, update_interval=5, clusters=False):
             a = cluster.find_clusters(grid)
             u = np.unique(a, return_counts=True)
             axs[1].loglog(u[0], u[1])
+            axs[1].set_xlabel("cluster size")
+            axs[1].set_ylabel("frequency")
 
     anim = animation.FuncAnimation(
         fig,

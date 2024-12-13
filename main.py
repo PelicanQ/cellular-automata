@@ -12,7 +12,7 @@ import cluster
 from scipy.ndimage import convolve
 import scipy
 import matplotlib
-
+import csv
 
 # setting up the values for the grid
 
@@ -261,17 +261,21 @@ def update_nowrap(frame, img, grid, N, activity, act_img):
     grid[:] = newGrid[:]
 
 
-# def hamming(grid: np.ndarray, grid2: np.ndarray | None = None):
-#     # calculate hamming distance to zero for now
-#     a = grid.flatten()
-#     d = scipy.spatial.distance.hamming(a, b)
-#     return d
 def num2grid(N: int, n: int):
     """n has to be 0 <= n < N*N"""
     a = np.zeros((N * N,), dtype=np.int16)
     for i, bit in enumerate(bin(n)[2:].zfill(N * N)):
         a[i] = int(bit) * ON
     return np.reshape(a, newshape=(N, N))
+
+
+def grid2num(grid):
+    flat1 = grid.flatten()
+    r = 0
+    for i, digit in enumerate(flat1):
+        n = (digit // 255) * pow(2, -i)
+        r += n
+    return r
 
 
 def main():
@@ -281,120 +285,30 @@ def main():
     updateInterval = 300  # milliseconds animation update
     rs = np.zeros((RUNS, FRAMES))  # real number encoding state
 
-    # grid = start3(N)
-    # grid2 = start4(N)
-    # for run in range(RUNS):
-    # for frame in range(FRAMES):
     X = []
     Y = []
-    ending = 2**17
+    ending = 2**10
     for start_n in range(ending):
         print(f"{(start_n / ending):.3f}")
         grid = num2grid(N=N, n=start_n)
-        new1 = update(grid=grid)
-        flat1 = new1.flatten()
-        r = 0
-        for i, digit in enumerate(flat1):
-            n = (digit // 255) * pow(2, -i)
-            r += n
-        X.append(start_n)  # where we started
-        Y.append(r)  # where update got us
+        start_r = grid2num(grid)
 
-    print("DONE")
-    # Y = rs[1:]
-    # X = rs[:-1]
+        new1 = update(grid=grid)
+
+        new_r = grid2num(new1)
+        X.append(start_r)  # where we started
+        Y.append(new_r)  # where update got us
+
+    with open("map.csv", mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerows([X, Y])
+
     ax = plt.subplot(111)
-    ax.plot(X, Y, marker=".")
+    ax.plot(X, Y)
     ax.set_title("First order return map")
     ax.set_xlabel("y_n")
     ax.set_ylabel("y_n+1")
-    # ax.set_xscale("log")
-    # ax.set_yscale("log")
     plt.show()
-    # inits plots
-    # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(ncols=2, nrows=2)  # figure for CA grid
-
-    # img: matplotlib.image.AxesImage = ax1.imshow(grid, interpolation="nearest")
-    # img2: matplotlib.image.AxesImage = ax3.imshow(grid2, interpolation="nearest")
-
-    # dist: matplotlib.axes.Axes = ax2
-    # dist2: matplotlib.axes.Axes = ax4
-    # [hamming_line] = dist.plot(0, 0, label="Hamming", marker=".", color="b")
-    # [jac_line] = dist.plot(0, 0, marker=".", color="r", label="Jaccard")
-    # [dice_line] = dist.plot(0, 0, marker=".", color="g", label="Dice")
-    # [kul_line] = dist.plot(0, 0, marker=".", color="b", label="Kul")
-    # [line1] = dist.plot(0, 0, marker=".", color="y", label="Line1")
-    # [line2] = dist.plot(0, 0, marker=".", label="Line2")
-    # [line3] = dist.plot(0, 0, marker=".", label="Line3")
-    # # [line4] = dist2.plot(0, 1, marker=".", label="Line4")
-    # # [map_line] = dist2.plot()
-    # dist.set_xlim([0, FRAMES])
-    # dist.legend()
-
-    # anim = animation.FuncAnimation(
-    #         fig,
-    #         update_all,
-    #         interval=updateInterval,
-    #         frames=FRAMES,
-    #         repeat=False,
-    #     )
-    # plt.show()
-    # def one_run():
-
-    #     img.set_data(grid)
-    #     img2.set_data(grid2)
-
-    #     def add_linedata(line, flat1, flat2, dist_func, frame):
-    #         data = line.get_data()
-    #         dist = dist_func(flat1, flat2)
-    #         log = np.append(data[1], dist)
-    #         line.set_data(np.append(data[0], frame), log)
-
-    #     def update_all(frame: int):
-    # new1 = update(frame, grid, parallel=False, img=img)
-    # new2 = update(frame, grid2, parallel=False, img=img)
-    # img.set_data(new1)
-    # img2.set_data(new2)
-
-    # flat1 = new1.flatten()
-    # flat2 = new2.flatten()
-    # r = 0
-    # for i, digit in enumerate(flat1):
-    #     n = (digit // 255) * pow(2, -i)
-    #     r += n
-
-    # rs[frame] = r
-    # # print(rs)
-    # add_linedata(
-    #     hamming_line, flat1, flat2, scipy.spatial.distance.hamming, frame
-    # )
-    # add_linedata(jac_line, flat1, flat2, scipy.spatial.distance.jaccard, frame)
-    # add_linedata(
-    #     dice_line,
-    #     flat1,
-    #     flat2,
-    #     lambda a, b: np.abs(scipy.spatial.distance.dice(a, b)),
-    #     frame,
-    # )
-    # add_linedata(
-    #     kul_line, flat1, flat2, scipy.spatial.distance.kulczynski1, frame
-    # )
-    # add_linedata(
-    #     line1, flat1, flat2, scipy.spatial.distance.rogerstanimoto, frame
-    # )
-    # add_linedata(line2, flat1, flat2, scipy.spatial.distance.russellrao, frame)
-    # add_linedata(
-    #     line3, flat1, flat2, scipy.spatial.distance.sokalmichener, frame
-    # )
-    # add_linedata(line4, flat1, flat2, scipy.spatial.distance.sokalsneath, frame)
-
-    # print(np.max(X), np.min(X))
-    # dist.relim()
-    # dist.autoscale_view()
-    # dist2.relim()
-    # dist2.autoscale_view()
-    # if frame == FRAMES - 1:
-    # done()
 
 
 # call main

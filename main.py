@@ -261,56 +261,103 @@ def update_nowrap(frame, img, grid, N, activity, act_img):
     grid[:] = newGrid[:]
 
 
-def num2grid(N: int, n: int):
-    """n has to be 0 <= n < N*N"""
-    a = np.zeros((N * N,), dtype=np.int16)
-    for i, bit in enumerate(bin(n)[2:].zfill(N * N)):
+def num2grid(size: int, num: int):
+    """
+    takes an int, returns the corresponding grid
+    num has to be 0 <= n < N*N
+
+    """
+    a = np.zeros((size * size,), dtype=np.int64)
+    for i, bit in enumerate(bin(num)[2:].zfill(size * size)):
         a[i] = int(bit) * ON
-    return np.reshape(a, newshape=(N, N))
+    return np.reshape(a, newshape=(size, size))
 
 
-def grid2num(grid):
+def grid2num(grid: np.ndarray, N):
     flat1 = grid.flatten()
     r = 0
+    b = ""
     for i, digit in enumerate(flat1):
-        n = (digit // 255) * pow(2, -i)
-        r += n
-    return r
+        b += f"{digit//255}"
+        # n = (digit // 255) * pow(2, -i)
+        # r += n
+    # print(b)
+    # print(" ")
+    n = int(b, 2)
+    r = n / (2 ** (N * N))
+    return r, n
 
 
 def main():
-    N = 16  # grid size
-    FRAMES = 20  # how many updates for one run
-    RUNS = 10  # how many inital conditions
-    updateInterval = 300  # milliseconds animation update
-    rs = np.zeros((RUNS, FRAMES))  # real number encoding state
+    N = 4  # grid size
 
+    # inits plots
+    fig, ax = plt.subplots(ncols=1, nrows=1)  # figure for CA grid
     X = []
     Y = []
-    ending = 2**10
+    # g = num2grid(N, n=7)
+    # ng = update(g, 0)
+    # ax.imshow(ng)
+    # plt.show()
+    ending = 2**16
     for start_n in range(ending):
+        # we choose one start and do one update
         print(f"{(start_n / ending):.3f}")
-        grid = num2grid(N=N, n=start_n)
-        start_r = grid2num(grid)
+        grid = num2grid(size=N, num=start_n)
+        start_r, hopefully_start_n = grid2num(grid, N)
+        if hopefully_start_n != start_n:
+            # something went wrong. This is a check that back and forth conversion works
+            exit("AAAAAGHHHH")
 
-        new1 = update(grid=grid)
+        new_grid = update(grid=grid)
 
-        new_r = grid2num(new1)
+        new_r, new_n = grid2num(new_grid, N)
+        # if new_r < 1e-4:
         X.append(start_r)  # where we started
         Y.append(new_r)  # where update got us
+        # return
 
     with open("map.csv", mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerows([X, Y])
 
+    # fractal plot
     ax = plt.subplot(111)
     ax.plot(X, Y)
     ax.set_title("First order return map")
     ax.set_xlabel("y_n")
     ax.set_ylabel("y_n+1")
+    ax.relim()
+    ax.autoscale_view()
     plt.show()
+
+    # dist.set_xlim([0, FRAMES])
+    #     img.set_data(grid)
+    #     img2.set_data(grid2)
+    #     def add_linedata(line, flat1, flat2, dist_func, frame):
+    #         data = line.get_data()
+    #         dist = dist_func(flat1, flat2)
+    #         log = np.append(data[1], dist)
+    #         line.set_data(np.append(data[0], frame), log)
+
+    #     def update_all(frame: int):
+    # new1 = update(frame, grid, parallel=False, img=img)
+    # new2 = update(frame, grid2, parallel=False, img=img)
+    # img.set_data(new1)
+    # img2.set_data(new2)
+
+    # print(np.max(X), np.min(X))
+    # dist.relim()
+    # dist.autoscale_view()
+    # dist2.relim()
+    # dist2.autoscale_view()
+    # if frame == FRAMES - 1:
+    # done()
 
 
 # call main
 if __name__ == "__main__":
     main()
+
+
+# Gostick J, Khan ZA, Tranter TG, Kok MDR, Agnaou M, Sadeghi MA, Jervis R. PoreSpy: A Python Toolkit for Quantitative Analysis of Porous Media Images. Journal of Open Source Software, 2019. doi:10.21105/joss.01296

@@ -64,6 +64,16 @@ def find_clusters(array):
     return clusters
 
 
+def get_cluster_dist(array, normalized=False):
+    a = find_clusters(array)
+    size, freq = np.unique(a, return_counts=True)
+
+    if normalized:
+        freq = freq/np.sum(freq)
+    
+    return size, freq
+
+
 # Find clusters of non-zero elements
 # clusters = find_clusters(array)
 

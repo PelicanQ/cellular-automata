@@ -106,8 +106,10 @@ fractionsY = np.zeros((rounds, 1))
 scatter: matplotlib.axes.Axes
 
 
-birth_map = [OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF, OFF]  # if dead
-death_map = [OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF]  # if alive
+birth_map = [OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF, OFF]  # if dead OG
+death_map = [OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF]  # if alive OG
+# birth_map = [OFF, OFF, OFF, ON, ON, OFF, OFF, OFF, OFF]  # if dead
+# death_map = [OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF]  # if alive
 
 
 def update(
@@ -290,11 +292,18 @@ def grid2num(grid: np.ndarray, N):
 
 def main():
     N = 4  # grid size
-
+    # Grid size | Fractal depth, Times to zoom
+    # 8 5
+    # 9 6
+    # 11 8
+    # 15 12
+    # yep its minus 3
     # inits plots
-    fig, ax = plt.subplots(ncols=1, nrows=1)  # figure for CA grid
+    # fig, ax = plt.subplots(ncols=1, nrows=1)  # figure for CA grid
     X = []
     Y = []
+    QX = []
+    QY = []
     # g = num2grid(N, n=7)
     # ng = update(g, 0)
     # ax.imshow(ng)
@@ -304,17 +313,28 @@ def main():
         # we choose one start and do one update
         print(f"{(start_n / ending):.3f}")
         grid = num2grid(size=N, num=start_n)
-        start_r, hopefully_start_n = grid2num(grid, N)
-        if hopefully_start_n != start_n:
-            # something went wrong. This is a check that back and forth conversion works
-            exit("AAAAAGHHHH")
+        start_r, _ = grid2num(grid, N)
 
         new_grid = update(grid=grid)
+        new_grid = update(grid=new_grid)
+
+        Q, Q_n = grid2num(new_grid, N)
+        QX.append(start_n)  # where we started
+        QY.append(Q_n)  # where update got us
+
+        new_grid = update(grid=new_grid)
+        new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
+        # new_grid = update(grid=new_grid)
 
         new_r, new_n = grid2num(new_grid, N)
         # if new_r < 1e-4:
-        X.append(start_r)  # where we started
-        Y.append(new_r)  # where update got us
+        X.append(start_n)  # where we started
+        Y.append(new_n)  # where update got us
         # return
 
     with open("map.csv", mode="w", newline="") as file:
@@ -323,10 +343,13 @@ def main():
 
     # fractal plot
     ax = plt.subplot(111)
-    ax.plot(X, Y)
+    ax.plot(X, Y, linewidth=0, marker=".", color="b")
+    ax.plot(QX, QY, linewidth=0, marker="x", color="g")
+    ax.plot([1, ending], [1, ending])
     ax.set_title("First order return map")
     ax.set_xlabel("y_n")
     ax.set_ylabel("y_n+1")
+    ax.set_ylim([-1, ending])
     ax.relim()
     ax.autoscale_view()
     plt.show()
@@ -359,5 +382,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-
+# if hopefully_start_n != start_n:
+#     # something went wrong. This is a check that back and forth conversion works
+#     exit("AAAAAGHHHH")
 # Gostick J, Khan ZA, Tranter TG, Kok MDR, Agnaou M, Sadeghi MA, Jervis R. PoreSpy: A Python Toolkit for Quantitative Analysis of Porous Media Images. Journal of Open Source Software, 2019. doi:10.21105/joss.01296

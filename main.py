@@ -23,7 +23,7 @@ def random_grid(N, p):
     """returns a grid of NxN random values
 
     Parameters:
-        - N: grid size i.e. grid is NxN
+        - N: grid size, i.e. grid is NxN
         - p: probability for each cell to initially be ON
     """
     return np.random.choice(vals, N * N, p=[p, 1 - p]).reshape(N, N)
@@ -267,6 +267,7 @@ def animate(grid, *, update_interval=5, clusters=False):
     # act_img.set_data(activity)
     img.set_data(grid)
 
+    # TODO: coords should be function of grid size and window size
     generation_text = axs[0].text(150, -40, '', fontsize=15, ha='center', va='center', color='black')
 
     def plot_clusters():
@@ -296,12 +297,96 @@ def animate(grid, *, update_interval=5, clusters=False):
     plt.show()
 
 
-def main():
-    N = 300
-    grid = random_grid(N, 0.3)
+def plot_cluster_dist(rule, N=100, p=0.2, num_seeds=10, num_generations=100, savepath=None):
+    """Plot the distribution of cluster sizes for an evolution rule.
+
+    Parameters:
+        - rule: the rule to update the grid with
+        - N: grid size, i.e. grid is NxN
+        - p: probability for each cell to initially be ON
+        - num_seeds: the number of random initial seeds/grids to use
+        - num_generations: the number of generations to run each initial grid through
+        - savepath: the plot is saved to this path if specified, else it isn't saved
+    """
+
+    t1 = time.perf_counter()
+
     global chosen_rule
-    chosen_rule = rules.conway
+    chosen_rule = rule
+
+    cluster_list = []
+
+    for i in range(num_seeds):
+        print(f"Working... {i/num_seeds * 100:.1f}% done", end="\r")
+        grid = random_grid(N, p)
+
+        for j in range(num_generations):
+            update(j, grid, None)
+
+        a = cluster.find_clusters(grid)
+        cluster_list.append(a)
+
+    clusters = np.concatenate(cluster_list)
+
+    size, freq = np.unique(clusters, return_counts=True)
+    freq_normalized = freq/np.sum(freq)
+
+    fig, ax = plt.subplots()
+    ax.loglog(size, freq_normalized)
+    ax.set_xlabel("cluster size")
+    ax.set_ylabel("frequency")
+
+    t2 = time.perf_counter()
+    print(f"Completed after {t2 - t1} ns")
+
+    if savepath:
+        plt.savefig(savepath)
+
+    plt.show()
+
+
+def recreate_fig8():
+    plot_cluster_dist(rule=rules.fig8,
+                      N=100,
+                      p=0.2,
+                      num_seeds=1000,
+                      num_generations=200,
+                      savepath="plots/fig8.pdf")
+
+
+
+def make_plot_cluster_dist_conway():
+    plot_cluster_dist(rule=rules.conway,
+                      N=100,
+                      p=0.2,
+                      num_seeds=1000,
+                      num_generations=2000,
+                      savepath="plots/conway-100-02-1000-2000.pdf")
+
+
+def make_plot_cluster_dist_fig6():
+    plot_cluster_dist(rule=rules.fig6,
+                      N=100,
+                      p=0.2,
+                      num_seeds=1000,
+                      num_generations=100,
+                      savepath="plots/fig6-100-02-1000-100.pdf")
+
+
+def demo_plot_cluster_dist():
+    plot_cluster_dist(rules.conway, 100, 0.2, 10, 2000)
+
+
+def demo_animate():
+    N = 100
+    grid = random_grid(N, 0.2)
+    global chosen_rule
+    chosen_rule = rules.fig6
     animate(grid, clusters=True)
+
+
+def main():
+    demo_animate()
 
 
 if __name__ == "__main__":

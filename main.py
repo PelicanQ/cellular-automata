@@ -48,14 +48,14 @@ def start(N: int):
     return a
 
 
-chosen_rule = rules.fig6
+chosen_rule = rules.Q
 rounds = 100
 fractionsX = np.zeros((rounds, 1))
 fractionsY = np.zeros((rounds, 1))
 scatter: matplotlib.axes.Axes
 
 
-def update(frame: int, grid, img=None, wrap: bool = True):
+def update(grid, img=None, wrap: bool = True):
     kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int16)
     conv = convolve(grid, kernel, mode="wrap" if wrap else "constant", cval=OFF)
     num_neighbors = np.floor_divide(conv, 255)
@@ -65,8 +65,6 @@ def update(frame: int, grid, img=None, wrap: bool = True):
 
     # num cols
     M = np.shape(grid)[1]
-
-    # fractionsX[frame] = np.sum(grid) / (N * M * ON)  # set prev fraction
 
     # update grid according to global chosen_rule
     for i in range(N):
@@ -78,9 +76,6 @@ def update(frame: int, grid, img=None, wrap: bool = True):
 
     if img:
         img.set_data(grid)
-
-    # fractionsY[frame] = np.sum(grid) / (N * M * ON)  # set updated fraction
-    # scatter.scatter(fractionsX[frame], fractionsY[frame])
 
 
 def animate(grid, *, update_interval=5, clusters=False):
@@ -131,7 +126,7 @@ def animate(grid, *, update_interval=5, clusters=False):
         plot_clusters()
 
     def anim_func(frame):
-        update(frame, grid, img=img)
+        update(grid, img=img)
 
         generation_text.set_text(f"Generation: {frame}")
 
@@ -174,7 +169,7 @@ def plot_cluster_dist(
         grid = random_grid(N, p)
 
         for j in range(num_generations):
-            update(j, grid, None)
+            update(grid, None)
 
         a = cluster.find_clusters(grid)
         cluster_list.append(a)

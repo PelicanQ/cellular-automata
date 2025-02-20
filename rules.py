@@ -5,8 +5,8 @@ class Rule:
     def __init__(self, birth_map, death_map) -> None:
         # lists where the index is a cells number of neighbors and
         # the value is the state of the cell in the next generation
-        self._birth_map = birth_map # if dead
-        self._death_map = death_map # if alive
+        self._birth_map = birth_map  # if dead
+        self._death_map = death_map  # if alive
 
     @property
     def birth_map(self):
@@ -29,17 +29,21 @@ Rules:
 """
 conway = Rule(
     birth_map=[OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF, OFF],
-    death_map=[OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF]
+    death_map=[OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF],
 )
 
 
 fig6 = Rule(
     birth_map=[OFF, OFF, OFF, ON, OFF, OFF, ON, OFF, OFF],
-    death_map=[OFF, OFF, ON, ON, OFF, ON, ON, OFF, OFF]
+    death_map=[OFF, OFF, ON, ON, OFF, ON, ON, OFF, OFF],
 )
 
 
 fig8 = Rule(
     birth_map=[OFF, OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF],
-    death_map=[OFF, OFF, ON, ON, ON, ON, ON, OFF, OFF]
+    death_map=[OFF, OFF, ON, ON, ON, ON, ON, OFF, OFF],
+)
+Q = Rule(
+    birth_map=[OFF, OFF, ON, OFF, ON, OFF, ON, OFF, OFF],
+    death_map=[OFF, OFF, OFF, ON, ON, ON, OFF, OFF, OFF],
 )

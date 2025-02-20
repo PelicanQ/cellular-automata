@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from const import OFF, ON
-from main import update
+from ca import CellularAutomata, Rule, ON, OFF
+#import rules
 import csv
 
 
@@ -49,16 +49,20 @@ def frac():
     # ax.imshow(ng)
     # plt.show()
     ending = 2**9
+
+    ca = CellularAutomata(N, rule=Rule.CONWAY)
+
     for start_n in range(ending):
         # we choose one start and do one update
         print(f"{(start_n / ending):.3f}")
-        grid = num2grid(size=N, num=start_n)
-        start_r, _ = grid2num(grid, N)
+        
+        ca.set_grid(num2grid(size=N, num=start_n))
+        start_r, _ = grid2num(ca.grid, N)
 
-        update(grid=grid)
+        ca.update()
         # new_grid = update(grid=new_grid)
 
-        new_r, new_n = grid2num(grid, N)
+        new_r, new_n = grid2num(ca.grid, N)
         # if new_r < 1e-4:
         X.append(start_n)  # where we started
         Y.append(new_n)  # where update got us

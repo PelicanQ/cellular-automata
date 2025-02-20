@@ -55,9 +55,9 @@ fractionsY = np.zeros((rounds, 1))
 scatter: matplotlib.axes.Axes
 
 
-def update(frame: int, grid, img=None):
+def update(frame: int, grid, img=None, wrap: bool = True):
     kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int16)
-    conv = convolve(grid, kernel, mode="wrap")
+    conv = convolve(grid, kernel, mode="wrap" if wrap else "constant", cval=OFF)
     num_neighbors = np.floor_divide(conv, 255)
 
     # num rows
@@ -81,157 +81,6 @@ def update(frame: int, grid, img=None):
 
     # fractionsY[frame] = np.sum(grid) / (N * M * ON)  # set updated fraction
     # scatter.scatter(fractionsX[frame], fractionsY[frame])
-
-
-def _update(_: int, grid, N: int, activity, img=None, act_img=None, fractions=None):
-    """
-    Returns: fraction of alive cells in the updated state
-    """
-    # copy grid since we require 8 neighbors
-    # for calculation and we go line by line
-    newGrid = grid.copy()
-    for i in range(N):
-        for j in range(N):
-
-            # compute 8-neighbor sum
-            # using toroidal boundary conditions - x and y wrap around
-            # so that the simulation takes place on a toroidal surface.
-            total = int(
-                (
-                    grid[i, (j - 1) % N]
-                    + grid[i, (j + 1) % N]
-                    + grid[(i - 1) % N, j]
-                    + grid[(i + 1) % N, j]
-                    + grid[(i - 1) % N, (j - 1) % N]
-                    + grid[(i - 1) % N, (j + 1) % N]
-                    + grid[(i + 1) % N, (j - 1) % N]
-                    + grid[(i + 1) % N, (j + 1) % N]
-                )
-                / 255
-            )
-
-            # apply  rules
-
-            # conway(i, j, total, grid, newGrid, activity)
-            chosen_rule(i, j, total, grid, newGrid, activity)
-
-    # update data
-    grid[:] = newGrid[:]
-    if img:
-        img.set_data(newGrid)
-    if act_img:
-        act_img.set_data(activity)
-
-    return np.sum(grid) / (N * N * ON)
-
-
-def update_nowrap(frame, img, grid, N, activity, act_img):
-    print(frame)
-    # copy grid since we require 8 neighbors
-    # for calculation and we go line by line
-    newGrid = grid.copy()
-    # corners
-    total = grid[1, 0] + grid[1, 1] + grid[0, 1]
-    chosen_rule(0, 0, total, grid, newGrid, activity)
-
-    total = grid[N - 1, 1] + grid[N - 2, 1] + grid[N - 2, 0]
-    chosen_rule(N - 1, 0, total, grid, newGrid, activity)
-
-    total = grid[0, N - 2] + grid[1, N - 1] + grid[1, N - 2]
-    chosen_rule(0, N - 1, total, grid, newGrid, activity)
-
-    total = grid[N - 2, N - 1] + grid[N - 1, N - 2] + grid[N - 2, N - 2]
-    chosen_rule(N - 1, N - 1, total, grid, newGrid, activity)
-
-    # side up
-    i = 0
-    for j in range(1, N - 1):
-        total = int(
-            (
-                grid[0, (j - 1)]
-                + grid[0, (j + 1)]
-                + grid[1, (j - 1)]
-                + grid[1, (j)]
-                + grid[1, (j + 1)]
-            )
-            / 255
-        )
-        chosen_rule(i, j, total, grid, newGrid, activity)
-    # side down
-    i = N - 1
-    for j in range(1, N - 1):
-        total = int(
-            (
-                grid[N - 1, (j - 1)]
-                + grid[N - 1, (j + 1)]
-                + grid[N - 2, (j - 1)]
-                + grid[N - 2, (j)]
-                + grid[N - 2, (j + 1)]
-            )
-            / 255
-        )
-        chosen_rule(i, j, total, grid, newGrid, activity)
-
-    # side left
-    j = 0
-    for i in range(1, N - 1):
-        total = int(
-            (
-                grid[i + 1, 0]
-                + grid[i - 1, 0]
-                + grid[i - 1, 1]
-                + grid[i, 1]
-                + grid[i + 1, 1]
-            )
-            / 255
-        )
-        chosen_rule(i, j, total, grid, newGrid, activity)
-
-    # side right
-    j = N - 1
-    for i in range(1, N - 1):
-        total = int(
-            (
-                grid[i + 1, N - 1]
-                + grid[i - 1, N - 1]
-                + grid[i - 1, N - 2]
-                + grid[i, N - 2]
-                + grid[i + 1, N - 2]
-            )
-            / 255
-        )
-        chosen_rule(i, j, total, grid, newGrid, activity)
-
-    # inner points
-    for i in range(1, N - 1):
-        for j in range(1, N - 1):
-
-            # compute 8-neighbor sum
-            # using toroidal boundary conditions - x and y wrap around
-            # so that the simulation takes place on a toroidal surface.
-            total = int(
-                (
-                    grid[i, (j - 1)]
-                    + grid[i, (j + 1)]
-                    + grid[(i - 1), j]
-                    + grid[(i + 1), j]
-                    + grid[(i - 1), (j - 1)]
-                    + grid[(i - 1), (j + 1)]
-                    + grid[(i + 1), (j - 1)]
-                    + grid[(i + 1), (j + 1)]
-                )
-                / 255
-            )
-
-            # apply  rules
-
-            # conway(i, j, total, grid, newGrid, activity)
-            chosen_rule(i, j, total, grid, newGrid, activity)
-
-    # update data
-    img.set_data(newGrid)
-    act_img.set_data(activity)
-    grid[:] = newGrid[:]
 
 
 def animate(grid, *, update_interval=5, clusters=False):
@@ -268,7 +117,9 @@ def animate(grid, *, update_interval=5, clusters=False):
     img.set_data(grid)
 
     # TODO: coords should be function of grid size and window size
-    generation_text = axs[0].text(150, -40, '', fontsize=15, ha='center', va='center', color='black')
+    generation_text = axs[0].text(
+        150, -40, "", fontsize=15, ha="center", va="center", color="black"
+    )
 
     def plot_clusters():
         size, freq = cluster.get_cluster_dist(grid)
@@ -297,7 +148,9 @@ def animate(grid, *, update_interval=5, clusters=False):
     plt.show()
 
 
-def plot_cluster_dist(rule, N=100, p=0.2, num_seeds=10, num_generations=100, savepath=None):
+def plot_cluster_dist(
+    rule, N=100, p=0.2, num_seeds=10, num_generations=100, savepath=None
+):
     """Plot the distribution of cluster sizes for an evolution rule.
 
     Parameters:
@@ -329,7 +182,7 @@ def plot_cluster_dist(rule, N=100, p=0.2, num_seeds=10, num_generations=100, sav
     clusters = np.concatenate(cluster_list)
 
     size, freq = np.unique(clusters, return_counts=True)
-    freq_normalized = freq/np.sum(freq)
+    freq_normalized = freq / np.sum(freq)
 
     fig, ax = plt.subplots()
     ax.loglog(size, freq_normalized)
@@ -346,31 +199,36 @@ def plot_cluster_dist(rule, N=100, p=0.2, num_seeds=10, num_generations=100, sav
 
 
 def recreate_fig8():
-    plot_cluster_dist(rule=rules.fig8,
-                      N=100,
-                      p=0.2,
-                      num_seeds=1000,
-                      num_generations=200,
-                      savepath="plots/fig8.pdf")
-
+    plot_cluster_dist(
+        rule=rules.fig8,
+        N=100,
+        p=0.2,
+        num_seeds=1000,
+        num_generations=200,
+        savepath="plots/fig8.pdf",
+    )
 
 
 def make_plot_cluster_dist_conway():
-    plot_cluster_dist(rule=rules.conway,
-                      N=100,
-                      p=0.2,
-                      num_seeds=1000,
-                      num_generations=2000,
-                      savepath="plots/conway-100-02-1000-2000.pdf")
+    plot_cluster_dist(
+        rule=rules.conway,
+        N=100,
+        p=0.2,
+        num_seeds=1000,
+        num_generations=2000,
+        savepath="plots/conway-100-02-1000-2000.pdf",
+    )
 
 
 def make_plot_cluster_dist_fig6():
-    plot_cluster_dist(rule=rules.fig6,
-                      N=100,
-                      p=0.2,
-                      num_seeds=1000,
-                      num_generations=100,
-                      savepath="plots/fig6-100-02-1000-100.pdf")
+    plot_cluster_dist(
+        rule=rules.fig6,
+        N=100,
+        p=0.2,
+        num_seeds=1000,
+        num_generations=100,
+        savepath="plots/fig6-100-02-1000-100.pdf",
+    )
 
 
 def demo_plot_cluster_dist():

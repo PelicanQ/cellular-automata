@@ -59,7 +59,7 @@ class CellularAutomata:
         self.rule = rule
         self.N = N
         self.wrap = wrap_boundary
-        self.grid = np.zeros((N, N), dtype=np.int16)
+        self.grid = np.zeros((N, N), dtype=np.int8)
 
     def set_grid(self, grid):
         self.grid = grid
@@ -73,7 +73,7 @@ class CellularAutomata:
         self.grid = np.random.choice([ON, OFF], self.N * self.N, p=[p, 1 - p]).reshape(self.N, self.N)
 
     def update(self, img=None):
-        kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int16)
+        kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int8)
         conv = convolve(self.grid, kernel, mode="wrap" if self.wrap else "constant", cval=OFF)
         num_neighbors = np.floor_divide(conv, 255)
 
@@ -99,7 +99,7 @@ class CellularAutomata:
 #     """returns a grid of NxN values (initial values for fig 6)"""
 #     if N % 2 == 1:
 #         raise Exception("N must be even")
-#     a = np.zeros((N, N), dtype=np.int16)
+#     a = np.zeros((N, N), dtype=np.int8)
 #     m = int(N / 2)
 #     a[m, m] = ON
 #     a[m + 1, m] = ON

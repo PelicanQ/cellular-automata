@@ -26,7 +26,7 @@ def make_plot_rule90():
     x = np.arange(1000)
     y = np.array([rule90(num) for num in x])
 
-    plt.plot(x,y)
+    plt.plot(x/np.max(x), y/np.max(y))
     plt.xlabel("$y(j)$")
     plt.ylabel("$y(j+1)$")
     plt.savefig(PLOT_DIR/"rule90.pdf")

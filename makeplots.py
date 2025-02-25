@@ -10,11 +10,16 @@ from rule90 import rule90
 PLOT_DIR = Path("figs")
 
 
-def make_plot_frac1():
-    frac(ca=CellularAutomata(N=9, rule=Rule.CONWAY, wrap_boundary=False),
+def make_plot_frac_conway():
+    frac(ca=CellularAutomata(N=16, rule=Rule.CONWAY, wrap_boundary=False),
          ending=2**16,
-         csv_save_path="frac1.csv",
-         fig_save_path=PLOT_DIR/"frac1.pdf")
+         fig_save_path=PLOT_DIR/"frac_conway.pdf")
+
+
+def make_plot_frac_Q():
+    frac(ca=CellularAutomata(N=16, rule=Rule.Q, wrap_boundary=False),
+         ending=2**16,
+         fig_save_path=PLOT_DIR/"frac_Q.pdf")
 
 
 def make_plot_rule90():
@@ -38,7 +43,8 @@ def main():
         print("making directory", PLOT_DIR.absolute())
         Path.mkdir(PLOT_DIR)
 
-    make_plot_frac1()
+    make_plot_frac_conway()
+    make_plot_frac_Q()
     make_plot_rule90()
 
 

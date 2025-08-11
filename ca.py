@@ -1,19 +1,79 @@
 # Python code to implement Conway's Game Of Life
 import numpy as np
+
 # import matplotlib.lines
 # import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import cluster
-from scipy.ndimage import convolve
 import time
+from scipy.ndimage import convolve
+import cupy as cp
+import cupyx.scipy.ndimage as cpndimage
+
 # import numba
 from enum import IntEnum
 
 
 # Cell states
-ON = 255
+ON = 1
 OFF = 0
+
+
+@cp.fuse()
+def deadPoly(x):
+    # take in number of neighbors. Returns what the live cell should become
+    return (
+        -1
+        * (x)
+        * (x - 1)
+        * (x - 2)
+        * (x - 4)
+        * (x - 5)
+        * (x - 6)
+        * (x - 7)
+        * (x - 8)
+        // 720
+    )
+
+
+@cp.fuse()
+def livePoly(x):
+    return (
+        x * (x - 1) * (x - 3) * (x - 4) * (x - 5) * (x - 6) * (x - 7) * (x - 8) // 1440
+    ) + (
+        x
+        * (x - 1)
+        * (x - 2)
+        * (x - 4)
+        * (x - 5)
+        * (x - 6)
+        * (x - 7)
+        * (x - 8)
+        // (-720)
+    )
+
+
+@cp.fuse()
+def totalPoly(n, x):
+    """n: number neighbors. x: cell value"""
+    dead = (
+        -n * (n - 1) * (n - 2) * (n - 4) * (n - 5) * (n - 6) * (n - 7) * (n - 8) // 720
+    )
+    live = (
+        n * (n - 1) * (n - 3) * (n - 4) * (n - 5) * (n - 6) * (n - 7) * (n - 8) // 1440
+    ) + (
+        n
+        * (n - 1)
+        * (n - 2)
+        * (n - 4)
+        * (n - 5)
+        * (n - 6)
+        * (n - 7)
+        * (n - 8)
+        // (-720)
+    )
+    return x * (live - dead) + dead
 
 
 class CellularAutomataRule:
@@ -54,12 +114,15 @@ class Rule:
     )
 
 
+cval = cp.int64(0)
+
+
 class CellularAutomata:
     def __init__(self, N, rule, wrap_boundary=True):
         self.rule = rule
         self.N = N
         self.wrap = wrap_boundary
-        self.grid = np.zeros((N, N), dtype=np.int8)
+        self.grid = np.zeros((N, N), dtype=np.int64)
 
     def set_grid(self, grid):
         self.grid = grid
@@ -70,26 +133,42 @@ class CellularAutomata:
         Parameters:
             - p: probability for each cell to initially be ON
         """
-        self.grid = np.random.choice([ON, OFF], self.N * self.N, p=[p, 1 - p]).reshape(self.N, self.N)
+        self.grid = np.random.choice([ON, OFF], self.N * self.N, p=[p, 1 - p]).reshape(
+            self.N, self.N
+        )
 
     def update(self, img=None):
-        kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.int8)
-        conv = convolve(self.grid, kernel, mode="wrap" if self.wrap else "constant", cval=OFF)
-        num_neighbors = np.floor_divide(conv, 255)
+        # def conv():
+        # return
 
+        num_neighbors = cpndimage.convolve(
+            self.grid,
+            kernel,
+            mode="wrap" if self.wrap else "constant",
+            cval=cval,
+        )
         # num rows
-        N = np.shape(self.grid)[0]
+        # N = np.shape(self.grid)[0]
 
         # num cols
-        M = np.shape(self.grid)[1]
+        # M = np.shape(self.grid)[1]
 
         # update grid according to global self.rule
-        for i in range(N):
-            for j in range(M):
-                if self.grid[i, j] == OFF:
-                    self.grid[i, j] = self.rule.birth_map[num_neighbors[i, j]]
-                else:
-                    self.grid[i, j] = self.rule.death_map[num_neighbors[i, j]]
+        # dead_map = [OFF, OFF, OFF, ON, OFF, OFF, OFF, OFF, OFF]
+        # live_map = [OFF, OFF, ON, ON, OFF, OFF, OFF, OFF, OFF]
+        # live = livePoly(num_neighbors)
+        # dead = deadPoly(num_neighbors)
+        # self.grid = self.grid * (live - dead) + dead
+        self.grid = totalPoly(num_neighbors, self.grid)
+
+        # for i in range(N):
+        #     for j in range(M):
+        #         if self.grid[i, j] == OFF:
+        #             # self.grid[i, j] = self.rule.birth_map[num_neighbors[i, j]]
+        #             self.grid[i, j] = dead_map[num_neighbors[i, j]]
+        #         else:
+        #             self.grid[i, j] = live_map[num_neighbors[i, j]]
+        #             # self.grid[i, j] = self.rule.death_map[num_neighbors[i, j]]
 
         if img:
             img.set_data(self.grid)
@@ -99,7 +178,7 @@ class CellularAutomata:
 #     """returns a grid of NxN values (initial values for fig 6)"""
 #     if N % 2 == 1:
 #         raise Exception("N must be even")
-#     a = np.zeros((N, N), dtype=np.int8)
+#     a = np.zeros((N, N), dtype=np.uint64)
 #     m = int(N / 2)
 #     a[m, m] = ON
 #     a[m + 1, m] = ON
@@ -114,7 +193,9 @@ class CellularAutomata:
 #     return a
 
 
-def animate(ca: CellularAutomata, *, update_interval: int = 5, show_cluster_stats: bool = False):
+def animate(
+    ca: CellularAutomata, *, update_interval: int = 5, show_cluster_stats: bool = False
+):
     """Animate the cellular automata evolution.
 
     Parameters:

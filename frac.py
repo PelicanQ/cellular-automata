@@ -1,102 +1,147 @@
-from matplotlib import pyplot as plt
-from pathlib import Path
+# from pathlib import Path
 import numpy as np
-from ca import CellularAutomata, Rule, ON, OFF
+from matplotlib import pyplot as plt
+import cupy as cp
+import cupyx.scipy.ndimage as cpndimage
+
+from line_profiler import profile
+
+# from ca import CellularAutomata, Rule, ON, OFF
 
 # import rules
-import csv
+# import csv
+
+SIZE = 15
+powers_two_core = (1 << cp.arange(SIZE * SIZE - 1, -1, -1)).reshape(
+    (SIZE, SIZE)
+)  # [2^(N*N)-1 2^(N*N-1)-1 2^(N*N-2)-1 ... 4 2 1]
+powers_two = cp.zeros((SIZE + 2, SIZE + 2), dtype=cp.float32)
+powers_two[1:-1, 1:-1] = powers_two_core
+
+shifts = cp.arange(SIZE * SIZE - 1, -1, -1, dtype=cp.float32).reshape(
+    (SIZE, SIZE)
+)  # [N*N-1 N*N-2 ... 3 2 1 ]
+zero_padded = cp.zeros((SIZE + 2, SIZE + 2), dtype=cp.float32)  # pad with zeros
+num_neighbors = cp.copy(zero_padded)
+kernel = cp.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=cp.float32)
 
 
-def num2grid(size: int, num: int):
+@cp.fuse()
+def totalPoly(n, x):
+    """n: number neighbors. x: cell value"""
+    dead = (
+        -n * (n - 1) * (n - 2) * (n - 4) * (n - 5) * (n - 6) * (n - 7) * (n - 8) // 720
+    )
+    live = (
+        n * (n - 1) * (n - 3) * (n - 4) * (n - 5) * (n - 6) * (n - 7) * (n - 8) // 1440
+    ) + (
+        n
+        * (n - 1)
+        * (n - 2)
+        * (n - 4)
+        * (n - 5)
+        * (n - 6)
+        * (n - 7)
+        * (n - 8)
+        // (-720)
+    )
+    return x * (live - dead) + dead
+
+
+@cp.fuse()
+def num2grid(num: int):
     """
     takes an int, returns the corresponding grid
     num has to be 0 <= n < N*N
-
     """
-    a = np.zeros((size * size,), dtype=np.int64)
-    for i, bit in enumerate(bin(num)[2:].zfill(size * size)):
-        a[i] = int(bit) * ON
-    return np.reshape(a, shape=(size, size))
+    return cp.bitwise_and(num >> shifts, 1)
 
 
-def grid2num(grid: np.ndarray, N):
-    flat1 = grid.flatten()
-    r = 0
-    b = ""
-    for i, digit in enumerate(flat1):
-        b += f"{digit//255}"
-        # n = (digit // 255) * pow(2, -i)
-        # r += n
-    # print(b)
-    # print(" ")
-    n = int(b, 2)
-    r = n / (2 ** (N * N))
-    return r, n
+def grid2num(grid: cp.ndarray):
+    """Input grid padded with zeros"""
+    n = cp.sum(grid * powers_two)
+    # r = n / (2 ** (N * N))
+    return None, n
 
 
+arange = np.arange(SIZE - 1, -1, -1)
+
+
+# @profile
+# def add_one(grid_in):
+#     grid = cp.asnumpy(grid_in)
+#     for i in arange:
+#         for j in arange:
+#             grid[i, j] = 1 - grid[i, j]
+#             if grid[i, j] == 1:
+#                 return cp.asarray(grid)
+#     raise Exception("How did I get here?")
+
+
+def add_one(grid):
+    for i in arange:
+        row = grid[i, :].get()
+        for j in arange:
+            row[j] = 1 - row[j]
+            if row[j] == 1:
+                grid[i, :] = cp.asarray(row)
+                return
+        grid[i, :] = cp.asarray(row)
+
+    raise Exception("How did I get here?")
+
+
+grid_core = cp.zeros((SIZE, SIZE), dtype=cp.float32)
+
+
+@profile
 def frac(
-    ca: CellularAutomata,
     ending: int,
-    csv_save_path: str | Path | None = None,
-    fig_save_path: str | Path | None = None,
+    # csv_save_path: str | Path | None = None,
+    # fig_save_path: str | Path | None = None,
 ) -> None:
-    N = ca.N  # grid size
-    # Grid size | Fractal depth, Times to zoom
-    # 8 5
-    # 9 6
-    # 11 8
-    # 15 12
-    # yep its minus 3
-    # inits plots
-    # fig, ax = plt.subplots(ncols=1, nrows=1)  # figure for CA grid
+    global grid_core
     X = []
     Y = []
-    # g = num2grid(N, n=7)
-    # ng = update(g, 0)
-    # ax.imshow(ng)
-    # plt.show()
-
     for start_n in range(ending):
         # we choose one start and do one update
         if start_n % 1000 == 0:
             print(f"Working... {(start_n / ending) * 100:.2f}% done", end="\r")
 
-        ca.set_grid(num2grid(size=N, num=start_n))
-        start_r, _ = grid2num(ca.grid, N)
+        zero_padded[1:-1, 1:-1] = grid_core
 
-        ca.update()
-        # new_grid = update(grid=new_grid)
+        def cov():
+            return cpndimage.convolve(zero_padded, kernel)
 
-        new_r, new_n = grid2num(ca.grid, N)
-        # if new_r < 1e-4:
+        num_neighbors = cov()
+        grid = totalPoly(num_neighbors, zero_padded)
+        _, new_n = grid2num(grid)
+        # increase grid
+        # grid_core = add_one(grid_core)
+        add_one(grid_core)
+
         X.append(start_n)  # where we started
-        Y.append(new_n)  # where update got us
-
-    if csv_save_path:
-        with open(csv_save_path, mode="w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerows([X, Y])
+        Y.append(int(new_n))  # where update got us
 
     # fractal plot
     ax = plt.subplot(111)
     ax.plot(X, Y, color="b")
-    # ax.plot([1, ending], [1, ending])
     ax.set_title("First order return map")
     ax.set_xlabel("$y_n$")
     ax.set_ylabel("$y_{n+1}$")
-    # ax.set_ylim([-1, ending])
     ax.relim()
     ax.autoscale_view()
 
-    if fig_save_path:
-        plt.savefig(fig_save_path)
+    # if fig_save_path:
+    #     plt.savefig(fig_save_path)
 
     plt.show()
 
 
 if __name__ == "__main__":
-    frac(
-        ca=CellularAutomata(N=8, rule=Rule.CONWAY, wrap_boundary=False),
-        ending=2**18,
-        # csv_save_path="map.csv",
-    )
+    frac(2**SIZE)
+    # frac(
+    #     ca=CellularAutomata(N=SIZE, rule=Rule.CONWAY, wrap_boundary=False),
+    #     ending=2**SIZE,
+    #     # csv_save_path="map.csv",
+    # )

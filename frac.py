@@ -2,7 +2,8 @@ from matplotlib import pyplot as plt
 from pathlib import Path
 import numpy as np
 from ca import CellularAutomata, Rule, ON, OFF
-#import rules
+
+# import rules
 import csv
 
 
@@ -33,7 +34,12 @@ def grid2num(grid: np.ndarray, N):
     return r, n
 
 
-def frac(ca: CellularAutomata, ending: int, csv_save_path: str | Path | None = None, fig_save_path: str | Path | None = None) -> None:
+def frac(
+    ca: CellularAutomata,
+    ending: int,
+    csv_save_path: str | Path | None = None,
+    fig_save_path: str | Path | None = None,
+) -> None:
     N = ca.N  # grid size
     # Grid size | Fractal depth, Times to zoom
     # 8 5
@@ -52,9 +58,9 @@ def frac(ca: CellularAutomata, ending: int, csv_save_path: str | Path | None = N
 
     for start_n in range(ending):
         # we choose one start and do one update
+        if start_n % 1000 == 0:
+            print(f"Working... {(start_n / ending) * 100:.2f}% done", end="\r")
 
-        print(f"Working... {(start_n / ending) * 100:.2f}% done", end="\r")
-        
         ca.set_grid(num2grid(size=N, num=start_n))
         start_r, _ = grid2num(ca.grid, N)
 
@@ -89,6 +95,8 @@ def frac(ca: CellularAutomata, ending: int, csv_save_path: str | Path | None = N
 
 
 if __name__ == "__main__":
-    frac(ca=CellularAutomata(N=9, rule=Rule.CONWAY, wrap_boundary=False),
-         ending=2**16,
-         csv_save_path="map.csv")
+    frac(
+        ca=CellularAutomata(N=8, rule=Rule.CONWAY, wrap_boundary=False),
+        ending=2**18,
+        # csv_save_path="map.csv",
+    )
